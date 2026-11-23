@@ -211,9 +211,11 @@ function buildCoverUrl(midOrUrl) {
   // 提取 mid：可能形如 M000abc.jpg.jpg 或纯 mid
   const midMatch = str.match(/M000([^.]+)\.jpg$/);
   const mid = midMatch ? midMatch[1] : str;
-  // v0.5.13：纯 mid 的封面改走自家封面代理 Worker（App 不再直连 y.qq.com 取图；
-  // Worker 服务端取图回吐，失败 302 回原链接）。完整 URL 的暂时不动。
-  return "https://fengshei-cover.a2-cf3.workers.dev/cover/" + mid + ".jpg";
+  // v0.7.3：纯 mid 的封面改回直连 y.qq.com 原图站，不再走 fengshei-cover
+  // 中转。原因：Worker 回吐不带 Content-Length（分块流），App 内图片加载器
+  // 碰上会一直转圈出不来；浏览器能打开不等于 App 内能加载。y.qq.com 原图
+  // 带 Content-Length，手机浏览器直连已验证可开。
+  return "https://y.qq.com/music/photo_new/T002R300x300M000" + mid + ".jpg";
 }
 
 /**
@@ -1624,7 +1626,7 @@ async function resolveDl74520Url(platform, songId, quality, extra) {
 module.exports = {
   platform: PLATFORM,
   author: "风誰",
-  version: "0.7.2",
+  version: "0.7.3",
   description:
     "风誰制作 · QQ音乐二开专用版（原版中转 + 评论补全 + 搜索翻页，仅供个人使用）",
   cacheControl: "no-cache",

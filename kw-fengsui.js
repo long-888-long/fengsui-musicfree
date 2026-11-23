@@ -725,7 +725,7 @@ async function fetchKwCommentsWww(sid, pageNo) {
 module.exports = {
   platform: "风誰·酷我",
 
-  version: "0.2.2",
+  version: "0.2.3",
 
   author: "风誰",
 
@@ -760,7 +760,14 @@ module.exports = {
       return { isEnd: true, data: [] };
     }
 
-    return { isEnd: true, data: body.data.items.map(normalizeSong) };
+    const songs = body.data.items.map(normalizeSong);
+    // v0.2.3：搜索接口经常不给封面（实测 20 首里 16 首 cover_url 为空），
+    // 对缺封面的歌批量调详情接口补上（并发 10，单首失败留空，不阻塞搜索）。
+    const noCover = songs.filter((s) => !s.artwork);
+    if (noCover.length) {
+      await fillKwSongCovers(noCover);
+    }
+    return { isEnd: true, data: songs };
   },
 
 
