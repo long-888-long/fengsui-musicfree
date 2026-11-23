@@ -1018,30 +1018,12 @@ async function resolveDl74520Url(platform, songId, quality, extra) {
 
 module.exports = {
   platform: "风誰·酷狗",
-  version: "0.6.0",
+  version: "0.6.1",
   author: "风誰",
   description:
     "风誰制作 · 酷狗概念版二开专用版：搜索/多音质播放/歌词/每日推荐/我的歌单/最近收听/云盘/歌单导入/评论/歌单详情（仅供个人使用）",
   cacheControl: "no-cache",
   supportedSearchType: ["music", "artist"],
-
-  // 74520 解析账号（v0.5.0 新增）：填 dl.74520.xyz 的账号密码，播放时
-  // 中转拿不到就走 74520 解析（酷狗非 VIP 可解析，VIP 仍走中转）。
-  // 不填也能用，只是没有这层兜底。账号密码只存在本机插件设置里。
-  userVariables: [
-    {
-      key: "dl74520_account",
-      name: "74520 账号",
-      title: "74520 账号",
-      hint: "dl.74520.xyz 的登录账号（手机号或邮箱）。填了才启用 74520 解析兜底，不填则跳过。",
-    },
-    {
-      key: "dl74520_password",
-      name: "74520 密码",
-      title: "74520 密码",
-      hint: "dl.74520.xyz 的登录密码。只存在本机插件设置里。",
-    },
-  ],
 
   /**
    * 关键字搜索歌曲 / 歌手

@@ -787,7 +787,7 @@ async function resolveDl74520Url(platform, songId, quality, extra) {
 
 module.exports = {
   platform: "风誰·网易云",
-  version: "0.2.1",
+  version: "0.2.2",
   author: "风誰",
   description: "风誰制作 · 网易云音乐二开专用版（原版中转 + 评论补全，仅供个人使用）",
   supportedSearchType: ["music", "artist", "album", "sheet"],
@@ -801,13 +801,14 @@ module.exports = {
       key: "dl74520_account",
       name: "74520 账号",
       title: "74520 账号",
-      hint: "dl.74520.xyz 的登录账号（手机号或邮箱）。填了才启用 74520 解析兜底，不填则跳过。",
+      hint: "未填写：输入 74520 账号（手机号或邮箱），填了才启用 74520 解析",
     },
     {
       key: "dl74520_password",
       name: "74520 密码",
       title: "74520 密码",
-      hint: "dl.74520.xyz 的登录密码。只存在本机插件设置里。",
+      type: "password",
+      hint: "未填写：输入 74520 密码，只存本机",
     },
   ],
 
