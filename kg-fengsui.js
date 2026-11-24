@@ -930,6 +930,11 @@ function formatKugouComment(c) {
 const DL74520_BASE = "https://dl.74520.xyz";
 const DL74520_LOGIN = DL74520_BASE + "/api/auth/login";
 const DL74520_RESOLVE = DL74520_BASE + "/api/music/resolve";
+// 74520 加了 UA 校验，无 UA 的请求直接 nginx 403（2026-11-24 实测），
+// 登录/解析 POST 必须带浏览器 UA + Referer（与 QQ/网易云 0.7.1/0.2.1 同款）。
+const DL74520_UA =
+  "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 " +
+  "(KHTML, like Gecko) Chrome/134.0.0.0 Safari/537.36";
 // 各平台档位键（实测）：QQ 用 320mp3/128mp3/flac；网易云用 exhigh（320k），
 // 320mp3/128mp3 在网易云上会 404；酷狗用 320mp3/128mp3。
 const DL74520_QUALITY = {
@@ -962,7 +967,7 @@ async function dl74520Login() {
       const res = await axios.post(
         DL74520_LOGIN,
         { account: creds.account, password: creds.password },
-        { timeout: 3000 }
+        { timeout: 3000, headers: { "User-Agent": DL74520_UA, Referer: DL74520_BASE + "/" } }
       );
       if (res && res.status === 200) {
         dl74520LoggedIn = true;
@@ -999,7 +1004,7 @@ async function resolveDl74520Url(platform, songId, quality, extra) {
           for_play: true,
         };
         if (extra && extra.mediaMid) body.media_mid = extra.mediaMid;
-        const res = await axios.post(DL74520_RESOLVE, body, { timeout: 3000 });
+        const res = await axios.post(DL74520_RESOLVE, body, { timeout: 3000, headers: { "User-Agent": DL74520_UA, Referer: DL74520_BASE + "/" } });
         const d = res && res.data;
         const inner = (d && d.data) || {};
         const url = inner.url || inner.audio_url || d.url || d.audio_url || "";
@@ -1018,12 +1023,30 @@ async function resolveDl74520Url(platform, songId, quality, extra) {
 
 module.exports = {
   platform: "风誰·酷狗",
-  version: "0.6.1",
+  version: "0.6.2",
   author: "风誰",
   description:
     "风誰制作 · 酷狗概念版二开专用版：搜索/多音质播放/歌词/每日推荐/我的歌单/最近收听/云盘/歌单导入/评论/歌单详情（仅供个人使用）",
   cacheControl: "no-cache",
   supportedSearchType: ["music", "artist"],
+
+  // v0.6.2：74520 播放兜底重新接回（中转 2026-11-24 大面积 404 回退）。
+  // 账号密码填在插件设置里，不填则本层静默跳过、不影响原有播放链。
+  userVariables: [
+    {
+      key: "dl74520_account",
+      name: "74520 账号",
+      title: "74520 账号",
+      hint: "未填写：输入 74520 账号（手机号或邮箱），填了才启用 74520 解析",
+    },
+    {
+      key: "dl74520_password",
+      name: "74520 密码",
+      title: "74520 密码",
+      type: "password",
+      hint: "未填写：输入 74520 密码，只存本机",
+    },
+  ],
 
   /**
    * 关键字搜索歌曲 / 歌手
@@ -1114,7 +1137,13 @@ module.exports = {
         // 静默换下一条路
       }
     }
-    // v0.6.0：中转是唯一路（74520 解析不了酷狗 VIP，留着只会白白拖 6 秒）
+    // v0.6.2：中转失败后走 74520 兜底（2026-11-24 中转大面积 404 回退）。
+    // 74520 只能解析非 VIP 酷狗歌（VIP 四档全 404），无账号静默跳过。
+    const dl = await resolveDl74520Url("kugou", song.id, quality, {
+      title: song.title,
+      author: song.artist,
+    });
+    if (dl && dl.url) return dl;
     throw new Error("获取播放链接失败");
   },
 
