@@ -1,5 +1,5 @@
 /**
- * qq.js — 风誰·QQ音乐 插件（风誰制作 · 二开专用版 v0.5.16）
+ * qq.js — 风誰·QQ音乐 插件（风誰制作 · 二开专用版 v0.7.4）
  * ------------------------------------------------------------------
  * 风誰制作，仅供个人使用。
  * 本插件是在 Z·QQ音乐原版（wenshao 原作，Super Z 反编译）基础上
@@ -155,6 +155,10 @@
  *   问题时也有路可走”，不是替代中转。QQ VIP 全覆盖仍需用户自己的 QQ 绿钻/
  *   VIP 登录态（未向用户索要账号，文件里不写任何账号）。
  * 后端约定：返回体 { result: 100, data: ... } 表示成功
+ * v0.7.4 改动（2026-11-28，小更新，升第三位；skill 审计修）：
+ *   1. 瘦身：删 Meting 死代码（METING_API + resolveMetingQQUrl，
+ *      调用早已删掉，只剩定义）；过时的“再走 Meting”注释同步改掉。
+ *   2. 验过：搜索输出无 HTML 实体，故 he.decode 不适用，不做。
  *
  */
 
@@ -708,40 +712,6 @@ async function resolveSongBySongId(song) {
   return result;
 }
 
-// Meting（liveling）QQ 兜底
-const METING_API = "https://meting.liveling.top/api";
-
-/**
- * Meting（liveling，server=tencent）兜底解析 QQ 播放地址（v0.5.2 新增）
- * 来源：liveling 的 Meting API（meting.liveling.top），站长自费维护的公益接口。
- * 实测（2026-11-21）：只 standard（128k）可用，exhigh/lossless 一律 404；
- * 免费歌部分可用——老男孩 CL=3,149,077（196s 整首）、小苹果 CL=3,473,018
- * （216s 整首）；最炫民族风/十年返回空（CL=224）；VIP 歌（晴天/七里香/
- * 小幸运/演员）一律 404，Meting 的 QQ 侧没有 VIP Cookie（与网易云侧不同）。
- * 所以这层兜底只覆盖部分免费歌；VIP 歌仍以中转为主，中转也拿不到时
- * 只能走用户自己的 QQ 绿钻/VIP 登录态（见文件头）。
- * @param {string} songmid QQ songmid
- * @returns {Promise<string|null>} 直链，拿不到返回 null
- */
-async function resolveMetingQQUrl(songmid) {
-  try {
-    const res = await axios.get(METING_API, {
-      params: { server: "tencent", type: "url", id: songmid, quality: "standard" },
-      timeout: 3000,
-      maxRedirects: 0,
-      validateStatus: () => true,
-    });
-    const loc = res.headers && (res.headers.location || res.headers.Location);
-    if (res.status === 302 && typeof loc === "string" && loc.indexOf("http") === 0) {
-      return loc;
-    }
-    return null;
-  } catch (e) {
-    return null;
-  }
-}
-
-// ------------------------------------------------------------------
 // 跨平台播歌兜底（v0.5.10 新增）：本平台拿不到播放链接时，
 // 按歌名+歌手去酷狗找同一首歌播。各平台版权不同，同一首歌在某平台是
 // VIP、在另一平台是免费的，不是绕付费墙，不用任何 VIP 账号。
@@ -1626,7 +1596,7 @@ async function resolveDl74520Url(platform, songId, quality, extra) {
 module.exports = {
   platform: PLATFORM,
   author: "风誰",
-  version: "0.7.3",
+  version: "0.7.4",
   description:
     "风誰制作 · QQ音乐二开专用版（原版中转 + 评论补全 + 搜索翻页，仅供个人使用）",
   cacheControl: "no-cache",
@@ -1741,10 +1711,9 @@ module.exports = {
     }
 
     const headers = { Referer: "https://y.qq.com/", "User-Agent": UA };
-    // v0.5.9：中转依次尝试（指定音质 → 重试一次 → 降音质 128k → https 中转 128k），
-    // 再走 Meting；全失败才报干净错误。切换静默、超时收紧，不让用户久等。
     // v0.6.2：中转只调 1 次，跟原版一样——通了就秒播，不通立刻走兜底，
     // 不重试、不等。兜底全部 3 秒超时，整条链最坏 20 秒内一定有结果。
+    // v0.7.4：Meting 已删；链路现为中转 1 次 → 74520 → 抛错。
     const attempts = [{ base: API, type: qualityCode }];
     for (let i = 0; i < attempts.length; i++) {
       const params = {

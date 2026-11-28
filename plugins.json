@@ -4,22 +4,22 @@
     {
       "name": "风誰·网易云",
       "url": "https://cdn.jsdelivr.net/gh/long-888-long/fengsui-musicfree@main/wy-fengsui.js",
-      "version": "0.2.2"
+      "version": "0.2.3"
     },
     {
       "name": "风誰·酷狗",
       "url": "https://cdn.jsdelivr.net/gh/long-888-long/fengsui-musicfree@main/kg-fengsui.js",
-      "version": "0.6.2"
+      "version": "0.6.3"
     },
     {
       "name": "风誰·QQ音乐",
       "url": "https://cdn.jsdelivr.net/gh/long-888-long/fengsui-musicfree@main/qq-fengsui.js",
-      "version": "0.7.3"
+      "version": "0.7.4"
     },
     {
       "name": "风誰·酷我",
       "url": "https://cdn.jsdelivr.net/gh/long-888-long/fengsui-musicfree@main/kw-fengsui.js",
-      "version": "0.2.4"
+      "version": "0.3.2"
     }
   ]
 }

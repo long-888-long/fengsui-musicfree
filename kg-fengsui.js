@@ -1,5 +1,5 @@
 /**
- * kg.js — 风誰·酷狗 插件（风誰制作 · 二开专用版 v0.4.9）
+ * kg.js — 风誰·酷狗 插件（风誰制作 · 二开专用版 v0.6.3）
  * ------------------------------------------------------------------
  * 风誰制作，仅供个人使用。
  * 本插件是在 Z·酷狗原版（wenshao 原作，Super Z 反编译）基础上
@@ -90,6 +90,10 @@
  *     相同结果），这是后端限制，插件侧无法解决，搜索仍为单页 20 条。
  * 后端约定：返回体 { code: 0, data: ... } 表示成功
  * 后端 baseUrl: http://ws.suol.cc/kg/kg.php
+ * v0.6.3 改动（2026-11-28，小更新，升第三位；skill 审计修）：
+ *   1. 补 primaryKey: ["id"]；补 hints（歌单导入粘贴提示）。
+ *   2. 验过：上游数据无 HTML 实体、搜索无 formats 字段，
+ *      故 he.decode 与 formats 透传不适用，不做。
  *
  */
 
@@ -1023,12 +1027,18 @@ async function resolveDl74520Url(platform, songId, quality, extra) {
 
 module.exports = {
   platform: "风誰·酷狗",
-  version: "0.6.2",
+  version: "0.6.3",
   author: "风誰",
   description:
     "风誰制作 · 酷狗概念版二开专用版：搜索/多音质播放/歌词/每日推荐/我的歌单/最近收听/云盘/歌单导入/评论/歌单详情（仅供个人使用）",
   cacheControl: "no-cache",
+  primaryKey: ["id"],
   supportedSearchType: ["music", "artist"],
+  hints: {
+    importMusicSheet: [
+      "支持酷狗歌单分享链接或纯数字歌单 id，例如 https://www.kugou.com/yy/special/single/123456.html",
+    ],
+  },
 
   // v0.6.2：74520 播放兜底重新接回（中转 2026-11-24 大面积 404 回退）。
   // 账号密码填在插件设置里，不填则本层静默跳过、不影响原有播放链。

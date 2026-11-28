@@ -1,5 +1,5 @@
 /**
- * wy.js — 风誰·网易云 插件（风誰制作 · 二开专用版 v0.0.19）
+ * wy.js — 风誰·网易云 插件（风誰制作 · 二开专用版 v0.2.3）
  * ------------------------------------------------------------------
  * 风誰制作，仅供个人使用。
  * 本插件是在 Z·网易云原版（wenshao 原作，Super Z 反编译）基础上
@@ -118,6 +118,13 @@
  * 中转 song/detail 一次能批量补 15 首的 picUrl（https 直链），所以搜索后统一补一次。
  * 翻译：中转 lyric 返回里有 tlyric（外文歌的中文翻译），之前没接，现在接上。
  * 后端约定：返回体 { code: 200, ... } 表示成功
+ * v0.2.3 改动（2026-11-28，小更新，升第三位；skill 审计修）：
+ *   1. 瘦身：删死代码约 300 行——gdstudio、星海、Meting、
+ *      酷狗跨平台的解析函数与常量（调用早已删掉，只剩定义）；
+ *      isFullAudioUrl 还在用（试听检测），没动。
+ *   2. 补 primaryKey: ["id"]；补 hints（歌单/单曲导入粘贴提示）。
+ *   3. 验过：上游数据无 HTML 实体、搜索无 formats 字段，
+ *      故 he.decode 与 formats 透传不适用，不做。
  *
  */
 
@@ -337,315 +344,6 @@ function formatNetEaseComment(c) {
   };
 }
 
-const GDSTUDIO_API = "https://music-api.gdstudio.xyz/api.php";
-
-/**
- * gdstudio 兜底解析播放地址（v0.0.5 新增）
- * 中转只给 30 秒试听、或拿不到地址时，用它拿整首。
- * 实测：王蓉《爸爸妈妈》299449，中转只给 30 秒（481KB），
- * gdstudio 能拿到整首 FLAC（28.8MB，约 266 秒），直链可播。
- * @param {string|number} songId 网易云歌曲 id
- * @returns {Promise<string|null>} 直链或 null
- */
-async function resolveGdstudioUrl(songId) {
-  try {
-    const res = await axios.get(GDSTUDIO_API, {
-      params: { types: "url", id: songId, source: "netease", br: 999 },
-      timeout: 8000,
-    });
-    const url = res.data && res.data.url;
-    return typeof url === "string" && url.indexOf("http") === 0 ? url : null;
-  } catch (e) {
-    return null;
-  }
-}
-
-const LX_XINGHAI_API = "https://yy.zddyr.top/lx/api/";
-/**
- * 星海（落雪 lx-music 聚合音源）兜底解析播放地址（v0.0.7 新增）
- * 来源：落雪音乐社区音源「星海音乐源」（pdone/lx-music-source，v3.2.18）
- * 的聚合后端 yy.zddyr.top/lx/api/（source=wy），无需 key，直接调。
- * 中转与 gdstudio 都拿不到整首时用它。实测：爸爸妈妈 / 布拉格广场 /
- * 屋顶均返回整首 320k（HEAD 验过 Content-Length 与 audio/mpeg）；
- * 晴天返回 404（与其它源一致，仍报无音源）。
- * @param {object} song 歌曲对象（title/artist/album/duration）
- * @param {string|number} songId 网易云歌曲 id
- * @param {string} quality 音质档位
- * @returns {Promise<string|null>} 直链或 null
- */
-async function resolveXinghaiUrl(song, songId, quality) {
-  try {
-    const q = quality === "super" ? "flac" : "320k";
-    const res = await axios.get(LX_XINGHAI_API, {
-      params: {
-        source: "wy",
-        name: song.title || "",
-        singer: (song.artist || "").replace(/\//g, ","),
-        songmid: songId,
-        interval: song.duration || "",
-        albumName: song.album || "",
-        quality: q,
-      },
-      timeout: 8000,
-    });
-    const data = res.data || {};
-    const url = data.url;
-    if (data.code === 200 && typeof url === "string" && url.indexOf("http") === 0) return url;
-    return null;
-  } catch (e) {
-    return null;
-  }
-}
-
-const METING_LIVELING_API = "https://meting.liveling.top/api";
-
-/**
- * Meting（liveling，配有网易云 VIP Cookie）兜底解析播放地址（v0.0.9 新增）
- * 来源：liveling 的 Meting API（meting.liveling.top，站长自费维护的公益接口），
- * 网易云侧配有 VIP Cookie，会员歌也能解析（QQ 音乐无 VIP Cookie，故只用于网易云）。
- * 接口返回 302，Location 头即真实音频直链（m801.music.126.net），故用
- * maxRedirects: 0 取 Location，不跟随跳转（避免把整首歌当正文下回来）。
- * 实测：布拉格广场/做一天的你/孤勇者/青花瓷VIP/稻香/爸爸妈妈等 VIP 歌均返回整首，
- * quality 参数有效（standard=128k，exhigh=320k，lossless=FLAC）。
- * 但《晴天》186016 在此源也返回 404（standard/exhigh/lossless 四档都试过），
- * 是该歌本身受限，与音质无关。
- * @param {string|number} songId 网易云歌曲 id
- * @param {string} quality 音质档位
- * @returns {Promise<string|null>} 直链或 null
- */
-async function resolveMetingUrl(songId, quality) {
-  const qmap = { super: "lossless", high: "exhigh", standard: "standard", low: "standard" };
-  const q = qmap[quality] || "standard";
-  const tryQuality = async (qq) => {
-    try {
-      const res = await axios.get(METING_LIVELING_API, {
-        params: { server: "netease", type: "url", id: songId, quality: qq },
-        timeout: 8000,
-        maxRedirects: 0,
-        validateStatus: () => true,
-      });
-      const loc = res.headers && (res.headers.location || res.headers.Location);
-      if (res.status === 302 && typeof loc === "string" && loc.indexOf("http") === 0) return loc;
-      return null;
-    } catch (e) {
-      return null;
-    }
-  };
-  let url = await tryQuality(q);
-  if (!url && q !== "standard") url = await tryQuality("standard");
-  return url;
-}
-
-// ------------------------------------------------------------------
-// 跨平台播歌兜底（v0.0.16 新增）：本平台拿不到整首播放链接时，
-// 按歌名+歌手去酷狗找同一首歌播。各平台版权不同，同一首歌在某平台是
-// VIP、在另一平台是免费的，不是绕付费墙，不用任何 VIP 账号。
-// 实测：网易云《晴天》、七里香、告白气球、稻香、Shape of You 都能从
-// 酷狗播整首（有效 MP3 128k，文件大小与时长相符）。
-// 匹配要准：歌名、歌手都对上（原唱优先，别拿翻唱版），时长差 120 秒以上不要。
-// 搜索：官方 song_search_v2 为主（关键字必须是“歌名 歌手”，只给歌名会返回空），
-// 空结果重试一次、再走中转搜索兜底；播放走酷狗中转 kg.php（http→https）。
-// 失败静默返回 null，不抛错、不阻塞（用户无感）。
-// ------------------------------------------------------------------
-const KG_XPLAY_SEARCH = "https://songsearch.kugou.com/song_search_v2";
-const KG_XPLAY_API = "http://ws.suol.cc/kg/kg.php";
-const KG_XPLAY_API_HTTPS = "https://ws.suol.cc/kg/kg.php";
-const KG_XPLAY_UA =
-  "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 " +
-  "(KHTML, like Gecko) Chrome/134.0 Safari/537.36";
-
-/** 归一化歌名/歌手：去空格、标点、括号，小写（中英文都适用） */
-function xplayNormStr(s) {
-  return String(s || "")
-    .toLowerCase()
-    .replace(/[\s\-_.'’"“”‘’()（）\[\]【】<>《》]/g, "");
-}
-
-/** 去掉酷狗搜索结果里的 <em> 高亮标签 */
-function xplayStripEm(s) {
-  return String(s || "").replace(/<\/?em>/gi, "");
-}
-
-/** 把酷狗 FileName（“歌手 - 歌名”）拆成歌名与歌手 */
-function xplaySplitKgTitle(fn) {
-  let t = xplayStripEm(fn || "").trim();
-  let artist = "";
-  const m = t.match(/^(.+?)\s*-\s*(.+)$/);
-  if (m) {
-    artist = m[1].trim();
-    t = m[2].trim();
-  }
-  return { title: t, artist };
-}
-
-/** 翻唱/Live/DJ 等非原唱版本标记（匹配时降权） */
-const XPLAY_VERSION_BAD =
-  /翻唱|live|现场|dj|remix|混音|伴奏|铃声|3d|环绕|改编|网友|纯音乐|instrumental/i;
-
-/**
- * 从酷狗候选里挑最像同一首歌的一条
- * 硬条件：歌名归一化相等；歌手互相包含（容 G.E.M. 前缀/多歌手）；
- * 时长差 120 秒以上不要。干净原唱优先，翻唱/Live/DJ 降权。
- * @param {Array<{id,title,artist,duration}>} list 候选（duration 秒）
- * @returns {object|null} 最佳候选或 null
- */
-function xplayPickBest(list, title, artist, duration) {
-  const tN = xplayNormStr(title);
-  const aN = xplayNormStr(artist);
-  if (!tN) return null;
-  let best = null;
-  // 初始分用 -Infinity：有效匹配的分数可能为负（如时长差 103 秒时 100-103=-3），
-  // 初始 -1 会把这类有效匹配漏掉（老男孩实测）。
-  let bestScore = -Infinity;
-  for (const c of list || []) {
-    const ctN = xplayNormStr(c.title);
-    if (ctN !== tN) continue;
-    const caN = xplayNormStr(c.artist);
-    if (aN && !(caN.includes(aN) || aN.includes(caN))) continue;
-    const dur = Number(c.duration) || 0;
-    const diff = duration > 0 ? Math.abs(dur - duration) : 0;
-    // 时长差 120 秒以上不要（平台间同一首歌的时长元数据常有出入，
-    // 如 QQ 老男孩 196s、酷狗 299s，仍是同一首歌；30 秒太严会误杀）。
-    // 原唱/翻唱靠下面的版本标记区分，时长只是辅助信号。
-    if (duration > 0 && diff > 120) continue;
-    let score = 100 - diff;
-    if (XPLAY_VERSION_BAD.test(c.title)) score -= 50;
-    if (score > bestScore) {
-      bestScore = score;
-      best = c;
-    }
-  }
-  return best;
-}
-
-/**
- * 酷狗找歌（官方搜索为主，空结果重试一次、再走中转搜索兜底）
- * 官方 song_search_v2 关键字必须是“歌名 歌手”（只给歌名会返回空），
- * 且偶发返回空（限流/抖动），故空结果重试一次仍空才走中转。
- * @param {string} keyword “歌名 歌手”
- * @returns {Promise<Array<{id,title,artist,duration}>>} 候选（duration 秒）
- */
-async function xplaySearchKugou(keyword) {
-  const params = {
-    keyword,
-    page: 1,
-    pagesize: 10,
-    userid: 0,
-    clientver: "",
-    platform: "WebFilter",
-    tag: "em",
-    filter: 2,
-    iscorrection: 1,
-    privilege_filter: 0,
-  };
-  const normOfficial = (lists) =>
-    (lists || [])
-      .map((raw) => {
-        const { title, artist } = xplaySplitKgTitle(raw.FileName);
-        return {
-          id: String(raw.FileHash || ""),
-          title: title || "未知歌曲",
-          artist: xplayStripEm(raw.SingerName || artist) || "未知歌手",
-          duration: Math.floor(Number(raw.Duration) || 0),
-        };
-      })
-      .filter((s) => s.id);
-  // 官方搜索，空结果重试一次
-  for (let attempt = 0; attempt < 2; attempt++) {
-    try {
-      const res = await axios.get(KG_XPLAY_SEARCH, { params, timeout: 8000 });
-      const list = normOfficial(res.data && res.data.data && res.data.data.lists);
-      if (list.length) return list;
-    } catch (e) {
-      // 失败/空结果都继续走重试或中转兜底
-    }
-    if (attempt === 0) {
-      await new Promise((r) => setTimeout(r, 1000));
-    }
-  }
-  // 中转搜索兜底（msg=关键字，中转 duration 是毫秒，转秒）
-  try {
-    const res = await axios.get(KG_XPLAY_API, {
-      params: { msg: keyword, num: 10 },
-      timeout: 8000,
-    });
-    const body = res.data;
-    if (body && body.code === 0 && Array.isArray(body.data)) {
-      return body.data
-        .map((raw) => {
-          let title = String(raw.name || raw.filename || "").trim();
-          let artist = raw.artist || raw.singer || "";
-          const m = title.match(/^(.+?)\s*-\s*(.+)$/);
-          if (m && (m[1].trim() === artist || !artist)) {
-            if (!artist) artist = m[1].trim();
-            title = m[2].trim();
-          }
-          title = title.replace(/\.(mp3|flac|wav|m4a|aac|ogg|ape)$/i, "");
-          return {
-            id: String(raw.id || ""),
-            title: title || "未知歌曲",
-            artist: artist || "未知歌手",
-            duration: Math.floor((Number(raw.duration) || 0) / 1000),
-          };
-        })
-        .filter((s) => s.id);
-    }
-  } catch (e) {
-    // 中转也失败，返回空
-  }
-  return [];
-}
-
-/**
- * 酷狗拿播放链接（中转 kg.php，http→https，128k）
- * @param {string} hash 酷狗歌曲 hash
- * @returns {Promise<string|null>} 直链或 null
- */
-async function xplayGetKugouUrl(hash) {
-  for (const base of [KG_XPLAY_API, KG_XPLAY_API_HTTPS]) {
-    try {
-      const res = await axios.get(base, {
-        params: { id: hash, quality: "128" },
-        timeout: 8000,
-      });
-      const body = res.data;
-      if (body && body.code === 0 && body.data && body.data.url) {
-        return body.data.url;
-      }
-    } catch (e) {
-      // 静默换下一条路
-    }
-  }
-  return null;
-}
-
-/**
- * 跨平台播歌兜底：本平台拿不到整首时去酷狗找同一首歌播
- * @param {{title?: string, artist?: string, duration?: number}} song 歌曲对象
- * @returns {Promise<{url: string, headers: object}|null>} 酷狗直链或 null
- */
-async function resolveKugouCrossPlayUrl(song) {
-  const title = (song && song.title) || "";
-  const artist = (song && song.artist) || "";
-  if (!title || title === "未知" || title === "未知歌曲") return null;
-  try {
-    const firstArtist =
-      artist && artist !== "未知歌手" ? artist.split("/")[0].trim() : "";
-    const keyword = firstArtist ? title + " " + firstArtist : title;
-    const list = await xplaySearchKugou(keyword);
-    const best = xplayPickBest(list, title, artist, song.duration || 0);
-    if (!best || !best.id) return null;
-    const url = await xplayGetKugouUrl(best.id);
-    if (!url) return null;
-    return {
-      url,
-      headers: { "User-Agent": KG_XPLAY_UA, Referer: "http://www.kugou.com/" },
-    };
-  } catch (e) {
-    return null;
-  }
-}
-
 /**
  * 校验直链是不是整首（v0.0.16 新增）：Meting 偶尔会给 VIP 歌返回试听片段
  * （如七里香只给 387KB，远短于整首），HEAD 看 Content-Length，明显短于
@@ -787,11 +485,20 @@ async function resolveDl74520Url(platform, songId, quality, extra) {
 
 module.exports = {
   platform: "风誰·网易云",
-  version: "0.2.2",
+  version: "0.2.3",
   author: "风誰",
   description: "风誰制作 · 网易云音乐二开专用版（原版中转 + 评论补全，仅供个人使用）",
+  primaryKey: ["id"],
   supportedSearchType: ["music", "artist", "album", "sheet"],
   cacheControl: "no-cache",
+  hints: {
+    importMusicSheet: [
+      "支持网易云歌单分享链接或纯数字歌单 id，例如 https://music.163.com/#/playlist?id=19723756",
+    ],
+    importMusicItem: [
+      "支持网易云单曲分享链接或纯数字歌曲 id，例如 https://music.163.com/#/song?id=183879",
+    ],
+  },
 
   // 74520 解析账号（v0.1.0 新增）：填 dl.74520.xyz 的账号密码，播放时
   // 本平台拿不到整首就走 74520 解析（网易云 VIP 可解析）。不填也能用，
@@ -959,7 +666,8 @@ module.exports = {
 
   /**
    * 获取播放地址
-   * 先走原版中转；中转只给 30 秒试听（或拿不到）时，用 gdstudio 兜底拿整首。
+   * v0.2.3：链路现为中转 1 次（带试听检测）→ 74520 → 抛错；
+   * gdstudio/星海/Meting/酷狗跨平台已删（见下“已删”）。
    * 试听判断：按歌曲时长算，文件明显短于整首就是试听。
    * @param {{_songId?: string, id: string, duration?: number}} song 歌曲对象
    * @param {string} quality 音质档位
