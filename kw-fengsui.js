@@ -33,7 +33,7 @@
  *      MusicFree 协议要的是秒，之前歌曲时长会显示成几千倍。
  *      现直接用秒（与风誰·酷狗 v0.4.5、风誰·网易云同款修法）。
  *   3. search 对非 music 类型直接返回空（原版不查 type，搜专辑
- *      也会把歌曲当专辑返回；与風誰·酷狗 v0.4.7、风誰·网易云
+ *      也会把歌曲当专辑返回；与风誰·酷狗 v0.4.7、风誰·网易云
  *      行为一致）。
  *   4. 品牌改为 风誰·酷我（平台/作者/描述/文件头），原作者署名
  *      保留在文件头；去掉 updateURL。
@@ -159,15 +159,15 @@ const KW_TOPLIST_FALLBACK = [
   ] },
   { group: "特色", items: [
     { sourceid: "336", name: "会员飙升榜", pic: "https://zimg.kuwo.cn/bang/1/0/1795329689095_534790.png", intro: "酷我平台每日搜索热度飙升最快的会员歌曲排行榜，按搜索播放数据对比前一天的涨幅排序，每天更新", pub: "今日更新" },
-    { sourceid: "331", name: "会员爱听排行榜", pic: "https://zimg.kuwo.cn/bang/4/7/1795329687865_534788.png", intro: "整合酷我会员用户播放热度最高的歌曲排行榜，按歌曲热度排序，每天更新", pub: "今日更新" },
+    { sourceid: "331", name: "会员爱听排行榜", pic: "https://zimg.kuwo.cn/bang/4/7/1795329687865_534788.png", intro: "整合酷我会员用户播放热度最高的歌曲排行榜，按歌曲热度排序，每日更新", pub: "今日更新" },
     { sourceid: "330", name: "会员新歌榜", pic: "https://zimg.kuwo.cn/bang/0/1/1795329686661_534787.png", intro: "整合酷我平台近半年发布的最受会员用户喜爱的新歌，按歌曲热度、发行时间综合排序，每日更新", pub: "今日更新" },
     { sourceid: "26", name: "经典怀旧榜", pic: "https://zimg.kuwo.cn/bang/8/0/1795330228584_490003.png", intro: "酷我用户每天播放怀旧歌曲排行榜，按歌曲热度排序，每天更新", pub: "今日更新" },
     { sourceid: "153", name: "网红新歌榜", pic: "https://zimg.kuwo.cn/bang/5/1/1795330233517_490015.png", intro: "酷我用户每天播放网红新歌（90天内发行）排行榜，按歌曲热度、发行时间综合排序，每天更新", pub: "今日更新" },
-    { sourceid: "278", name: "古风音乐榜", pic: "https://zimg.kuwo.cn/bang/5/5/1795329671900_532224.png", intro: "酷我用户每天播放古风歌曲排行榜，按歌曲热度排序，每天更新", pub: "今日更新" },
+    { sourceid: "278", name: "古风音乐榜", pic: "https://zimg.kuwo.cn/bang/5/5/1795329671900_532224.png", intro: "酷我用户每天播放古风歌曲排行榜，按歌曲热度、发行时间综合排序，每天更新", pub: "今日更新" },
     { sourceid: "284", name: "酷我热评榜", pic: "https://zimg.kuwo.cn/bang/2/3/1795329673147_532836.png", intro: "酷我用户每天讨论度最高的歌曲排行榜，按歌曲热度、评论综合排序，每天更新", pub: "今日更新" },
     { sourceid: "242", name: "极品电音榜", pic: "https://zimg.kuwo.cn/bang/0/5/1795329665584_531674.png", intro: "酷我用户每天播放电音歌曲排行榜，按歌曲热度排序，每天更新", pub: "今日更新" },
     { sourceid: "187", name: "流行趋势榜", pic: "https://zimg.kuwo.cn/bang/8/0/1795329659257_510021.png", intro: "酷我每日搜索热度飙升最快的歌曲排行榜，按歌曲热度、发行天数综合排序，每天更新", pub: "今日更新" },
-    { sourceid: "154", name: "酷我综艺榜", pic: "https://zimg.kuwo.cn/bang/4/6/1795329657969_509842.png", intro: "酷我用户每天播放综艺歌曲排行榜，按歌曲热度排序，每天更新", pub: "今日更新" },
+    { sourceid: "154", name: "酷我综艺榜", pic: "https://zimg.kuwo.cn/bang/4/6/1795329657969_509842.png", intro: "酷我用户每天播放综艺歌曲排行榜，按歌曲热度、发行时间综合排序，每天更新", pub: "今日更新" },
     { sourceid: "64", name: "影视金曲榜", pic: "https://zimg.kuwo.cn/bang/9/2/1795330232177_490014.png", intro: "酷我用户每天播放影视歌曲（5年内发行）排行榜，按歌曲热度、发行时间综合排序，每天更新", pub: "今日更新" },
     { sourceid: "329", name: "酷我说唱榜", pic: "https://zimg.kuwo.cn/bang/4/7/1795329684092_534776.png", intro: "酷我用户每天播放说唱歌曲排行榜，按歌曲热度排序，每天更新", pub: "今日更新" },
     { sourceid: "291", name: "爆笑相声榜", pic: "https://zimg.kuwo.cn/bang/1/8/1795329679690_534519.png", intro: "酷我用户每天播放相声排行榜，按热度排序，每天更新", pub: "今日更新" },
@@ -181,10 +181,10 @@ const KW_TOPLIST_FALLBACK = [
   ] },
   { group: "语言", items: [
     { sourceid: "104", name: "酷我华语榜", pic: "https://zimg.kuwo.cn/bang/8/3/1795329692685_509833.png", intro: "酷我用户每天播放华语歌曲排行榜，按歌曲热度、发行时间综合排序，每天更新", pub: "今日更新" },
-    { sourceid: "182", name: "酷我粤语榜", pic: "https://zimg.kuwo.cn/bang/3/0/1795329693930_509834.png", intro: "酷我用户每天播放粤语歌曲排行榜，按歌曲热度排序，每天更新", pub: "今日更新" },
+    { sourceid: "182", name: "酷我粤语榜", pic: "https://zimg.kuwo.cn/bang/3/0/1795329693930_509834.png", intro: "酷我用户每天播放粤语歌曲排行榜，按歌曲热度、发行时间综合排序，每天更新", pub: "今日更新" },
     { sourceid: "22", name: "酷我欧美榜", pic: "https://zimg.kuwo.cn/bang/5/1/1795329695063_509835.png", intro: "酷我用户每天播放欧美歌曲排行榜，按歌曲热度、发行时间综合排序，每天更新", pub: "今日更新" },
-    { sourceid: "184", name: "酷我韩语榜", pic: "https://zimg.kuwo.cn/bang/4/6/1795329696351_509836.png", intro: "酷我用户每天播放韩语歌曲排行榜，按歌曲热度排序，每天更新", pub: "今日更新" },
-    { sourceid: "183", name: "酷我日语榜", pic: "https://zimg.kuwo.cn/bang/8/2/1795329697611_509837.png", intro: "酷我用户每天播放日语歌曲排行榜，按歌曲热度排序，每天更新", pub: "今日更新" },
+    { sourceid: "184", name: "酷我韩语榜", pic: "https://zimg.kuwo.cn/bang/4/6/1795329696351_509836.png", intro: "酷我用户每天播放韩语歌曲排行榜，按歌曲热度、发行时间综合排序，每天更新", pub: "今日更新" },
+    { sourceid: "183", name: "酷我日语榜", pic: "https://zimg.kuwo.cn/bang/8/2/1795329697611_509837.png", intro: "酷我用户每天播放日语歌曲排行榜，按歌曲热度、发行时间综合排序，每天更新", pub: "今日更新" },
   ] },
   { group: "全球", items: [
     { sourceid: "12", name: "美国The Billboard", pic: "https://img4.kuwo.cn/star/upload/10/10/1649672653402_.jpg", intro: "美国公告牌Billboard Hot100单曲榜，每周三更新", pub: "11月19日更新" },
@@ -382,7 +382,7 @@ function resolveValue(raw, args) {
 /**
  * 解析榜单页 SSR 数据里的 bangMenu：
  *   bangMenu:[{name:"官方",list:[{sourceid:g,intro:"...",name:"...",
- *   id:"489927",source:a,pic:"https://...",pub:b}, ...]}]
+ *   id:"489927",source:a,pic:"https://...",pub:b}, ...]}, ...]
  * @param {string} html 榜单页全文
  * @returns {Array<{group: string, items: Array}>|null}
  */
@@ -447,7 +447,7 @@ async function fetchKwRankMenu() {
 /**
  * 拉取一个榜单的一页歌曲（kbangserver，不走 csrf 的老接口）
  * 注意：返回的 duration 字段是脏数据（如 "2"），时长只认 song_duration。
- * @param {string} bangId 榜单 sourceid（如 16 热歌榜、93 飙升榜、17=新歌榜…）。
+ * @param {string} bangId 榜单 sourceid（如 16 热歌榜、93 飙升榜）
  * @param {number} pageNo 页码（从 1 开始）
  * @param {number} pageSize 每页条数
  * @returns {Promise<{name: string, total: number, songs: Array}>}
